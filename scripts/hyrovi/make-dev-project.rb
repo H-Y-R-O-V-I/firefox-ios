@@ -48,11 +48,24 @@ client.copy_files_build_phases.each do |phase|
   end
 end
 
+# Every product that participates in the local Debug build must use the HYROVI
+# development team. Upstream assigns Mozilla team identifiers to internal
+# frameworks as well as the app target, so changing only Client is not enough
+# for a physical-device build.
+project.targets.each do |target|
+  target.build_configurations.each do |config|
+    next unless config.name == "Debug"
+
+    settings = config.build_settings
+    settings["DEVELOPMENT_TEAM"] = "VTZMACGB4B"
+    settings.delete("DEVELOPMENT_TEAM[sdk=iphoneos*]")
+    settings["CODE_SIGN_STYLE"] = "Automatic"
+  end
+end
+
 client.build_configurations.each do |config|
   next unless config.name == "Debug"
 
-  config.build_settings["DEVELOPMENT_TEAM"] = "VTZMACGB4B"
-  config.build_settings["CODE_SIGN_STYLE"] = "Automatic"
   config.build_settings["CODE_SIGN_ENTITLEMENTS"] =
     "Client/Entitlements/HYROVIDev.entitlements"
 end
