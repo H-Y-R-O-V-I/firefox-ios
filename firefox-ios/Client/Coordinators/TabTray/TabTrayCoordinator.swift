@@ -65,7 +65,7 @@ final class TabTrayCoordinator: BaseCoordinator,
         let privateTabsPanel = TabDisplayPanelViewController(isPrivateMode: true,
                                                              windowUUID: windowUUID,
                                                              dragAndDropDelegate: dragAndDropDelegate)
-        let syncTabs = RemoteTabsPanel(windowUUID: windowUUID)
+        let syncTabs = HYROVISharedTabsPanel(windowUUID: windowUUID)
 
         let panels: [UIViewController]
         // Panels order is different for the experiment
@@ -95,7 +95,7 @@ final class TabTrayCoordinator: BaseCoordinator,
         case .privateTabs:
             makeTabsCoordinator(navigationController: navigationController)
         case .syncedTabs:
-            makeRemoteTabsCoordinator(navigationController: navigationController, for: tabManager.windowUUID)
+            break
         }
     }
 

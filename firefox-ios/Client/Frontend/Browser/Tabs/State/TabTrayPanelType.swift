@@ -5,7 +5,7 @@
 import Foundation
 import Common
 
-/// Within the app's Tabs Panel, visually there are three panels: private tabs, normal tabs, and synced tabs.
+/// Within the app's Tabs Panel, visually there are three panels: private tabs, normal tabs, and HYROVI Shared Tabs.
 enum TabTrayPanelType: Int, CaseIterable {
     case tabs
     case privateTabs
@@ -27,7 +27,7 @@ enum TabTrayPanelType: Int, CaseIterable {
         case .privateTabs:
             return .TabsTray.TabTrayPrivateBrowsingTitle
         case .syncedTabs:
-            return .LegacyAppMenu.AppMenuSyncedTabsTitleString
+            return "Shared Tabs"
         }
     }
 
@@ -38,7 +38,7 @@ enum TabTrayPanelType: Int, CaseIterable {
         case .privateTabs:
             return .TabsTray.TabsSelectorPrivateTabsTitle
         case .syncedTabs:
-            return .TabsTray.TabsSelectorSyncedTabsTitle
+            return "Shared"
         }
     }
 

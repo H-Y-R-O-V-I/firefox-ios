@@ -3,6 +3,7 @@
 
 require "fileutils"
 require "xcodeproj"
+require "pathname"
 
 ROOT = File.expand_path("../..", __dir__)
 SOURCE = File.join(ROOT, "firefox-ios", "Client.xcodeproj")
@@ -23,6 +24,18 @@ FileUtils.cp_r(SOURCE, DEST)
 project = Xcodeproj::Project.open(DEST)
 client = project.targets.find { |target| target.name == MAIN_TARGET }
 abort "Client target missing" unless client
+
+# Add HYROVI browser integration sources only to the generated development
+# project. The upstream Client.xcodeproj stays easy to rebase against Mozilla.
+hyrovi_sources_root = File.join(ROOT, "firefox-ios", "Client", "HYROVI")
+hyrovi_group = project.main_group.find_subpath("HYROVI Sources", true)
+Dir[File.join(hyrovi_sources_root, "*.swift")].sort.each do |source_path|
+  relative_path = Pathname.new(source_path)
+                          .relative_path_from(Pathname.new(File.join(ROOT, "firefox-ios")))
+                          .to_s
+  file_ref = hyrovi_group.new_file(relative_path)
+  client.source_build_phase.add_file_reference(file_ref, true)
+end
 
 # The personal HYROVI development team cannot receive Mozilla's restricted
 # Default Browser / Browser Installation / Push / Autofill capabilities.
