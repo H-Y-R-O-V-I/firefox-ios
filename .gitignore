@@ -152,3 +152,6 @@ LicensePlistTemp
 # Claude Code
 .claude/settings.local.json
 .mcp.json
+# Generated HYROVI development project
+firefox-ios/HYROVIClient.xcodeproj/
+firefox-ios/HYROVIClient/
