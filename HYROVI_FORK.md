@@ -72,3 +72,30 @@ Verified for Build 2 on 2026-10-05:
 - version: 158.1
 - build: 2
 - IPA validates in the HYROVI App System and is published to its IPA Queue
+
+
+## Build 4 HYROVI branding and One ecosystem
+
+Build 4 turns the Firefox iOS fork into the HYROVI Browser product surface while keeping Firefox/WebKit as the open-source browser foundation.
+
+Visible integration:
+- global product name: HYROVI Browser
+- Firefox Account UI replaced by a native HYROVI One hub for account, devices, sync and Shared Tabs
+- Shared Tabs stay integrated directly in the Firefox tab tray
+- Settings, About, permission prompts, splash screen and app icons use HYROVI branding
+- iOS 26/27 Liquid Glass release, beta and developer icons use HYROVI artwork
+- a native HYROVI privacy/data page replaces the Mozilla Firefox privacy link
+
+HYROVI bundle data defaults:
+- Mozilla crash reports, Glean technical/usage upload and daily usage ping are disabled
+- Mozilla studies/experiments and rollouts are disabled
+- Firefox sponsored shortcuts/suggestions and Pocket/Merino stories are disabled
+- factual Mozilla/open-source attribution is retained where required
+
+Verified on 2026-10-06:
+- version 158.1, build 4
+- signed arm64 physical-device build succeeds
+- Liquid Glass icon variants validate in Xcode
+- direct CoreDevice install succeeds on iPhone 12 Pro
+- bundle com.hyrovi.browser.ios
+- valid Build 4 IPA published to the HYROVI App System IPA Queue
