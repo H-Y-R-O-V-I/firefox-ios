@@ -99,3 +99,23 @@ Verified on 2026-10-06:
 - direct CoreDevice install succeeds on iPhone 12 Pro
 - bundle com.hyrovi.browser.ios
 - valid Build 4 IPA published to the HYROVI App System IPA Queue
+
+## Build 5 HYROVI-native browser surface
+
+Build 5 moves the fork beyond rebranding and changes the main browser surface.
+
+- the homepage header is now HYROVI Browser with HYROVI artwork and a direct One entry
+- the homepage search surface explicitly uses HYROVI Browser wording
+- the toolbar menu uses the full-color HYROVI mark
+- HYROVI One is a first-class browser navigation destination
+- Shared Tabs have a dedicated HYROVI header, device/live state, five-second auto refresh and in-app One management
+- the live remote viewer has connection/reconnect UI and a fixed scroll-action bridge
+- localized user-facing Firefox product strings in Shared, WidgetKit and Extensions were replaced with HYROVI Browser equivalents
+- a post-change audit reports zero Firefox occurrences in localized RHS UI values; remaining Firefox strings are internal identifiers and compatibility names only
+
+Verified on 2026-10-06:
+- version 158.1, build 5
+- full signed physical-device build succeeds
+- direct CoreDevice install succeeds
+- HYROVI Browser launches successfully on the iPhone
+- Build 5 IPA validates in the HYROVI App System
