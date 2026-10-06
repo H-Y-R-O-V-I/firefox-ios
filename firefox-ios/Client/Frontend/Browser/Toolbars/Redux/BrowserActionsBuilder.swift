@@ -53,7 +53,7 @@ enum BrowserActionsBuilder {
             actions.append(newTabAction)
         }
 
-        let menuIcon = StandardImageIdentifiers.Large.moreHorizontalRound
+        let menuIcon = "hyroviBrandLogo"
         let iconName: String? = switch tabTrayButtonStyle {
         case .number, .none: StandardImageIdentifiers.Large.tab
         case .screenshot: nil
@@ -100,6 +100,7 @@ enum BrowserActionsBuilder {
             iconName: iconName,
             badgeImageName: showWarningBadge ? StandardImageIdentifiers.Large.warningFill : nil,
             maskImageName: showWarningBadge ? ImageIdentifiers.menuWarningMask : nil,
+            templateModeForImage: false,
             isEnabled: true,
             a11yLabel: .LegacyAppMenu.Toolbar.MenuButtonAccessibilityLabel,
             a11yId: AccessibilityIdentifiers.Toolbar.settingsMenuButton)

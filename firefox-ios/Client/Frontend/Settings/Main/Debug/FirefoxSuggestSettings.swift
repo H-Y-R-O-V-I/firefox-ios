@@ -5,11 +5,11 @@
 import Foundation
 import UIKit
 
-/// A hidden setting for accessing the Firefox Suggest debug settings.
+/// A hidden setting for accessing the HYROVI Vorschläge debug settings.
 class FirefoxSuggestSettings: HiddenSetting {
     private weak var settingsDelegate: DebugSettingsDelegate?
 
-    override var title: NSAttributedString? { return NSAttributedString(string: "Firefox Suggest") }
+    override var title: NSAttributedString? { return NSAttributedString(string: "HYROVI Vorschläge") }
 
     init(settings: SettingsTableViewController, settingsDelegate: DebugSettingsDelegate) {
         self.settingsDelegate = settingsDelegate

@@ -278,8 +278,8 @@ final class FeatureFlagsDebugViewController: SettingsTableViewController, Featur
             },
             FeatureFlagsBoolSetting(
                 with: .sentFromFirefox,
-                titleText: format(string: "Sent from Firefox"),
-                statusText: format(string: "Toggle to enable Sent from Firefox to append text to WhatsApp shares")
+                titleText: format(string: "Geteilt mit HYROVI Browser"),
+                statusText: format(string: "Aktiviert einen HYROVI-Browser-Hinweis bei WhatsApp-Freigaben")
             ) { [weak self] _ in
                 self?.reloadView()
             },

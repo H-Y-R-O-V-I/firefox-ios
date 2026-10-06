@@ -19,6 +19,7 @@ enum BrowserNavigationDestination: Equatable {
     case homepageZeroSearch
     case zeroSearch
     case shortcutsLibrary
+    case hyroviOne
     case quickAnswers(transitionType: QuickAnswersTransitionType)
     case privacyNoticeLink(URL)
     case summarizer(config: SummarizerConfig, trigger: SummarizerTrigger)

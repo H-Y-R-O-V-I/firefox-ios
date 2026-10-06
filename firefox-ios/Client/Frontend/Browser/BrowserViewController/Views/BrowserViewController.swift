@@ -2777,6 +2777,8 @@ class BrowserViewController: UIViewController,
             showZeroSearchView()
         case .shortcutsLibrary:
             navigationHandler?.showShortcutsLibrary()
+        case .hyroviOne:
+            navigationHandler?.showHYROVIOne()
         case .quickAnswers(let transitionType):
             navigationHandler?.showQuickAnswers(transitionType: transitionType)
         case .privacyNoticeLink(let url):

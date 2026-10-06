@@ -6,6 +6,7 @@ import UIKit
 import SwiftUI
 import Common
 import Redux
+import SafariServices
 
 final class HYROVISharedTabsPanel: UIViewController,
                                   UITableViewDelegate,
@@ -26,6 +27,7 @@ final class HYROVISharedTabsPanel: UIViewController,
     private var syncState: BrowserSyncState?
     private var loading = false
     private var errorMessage: String?
+    private var autoRefreshTask: Task<Void, Never>?
 
     var themeManager: ThemeManager
     var themeListenerCancellable: Any?
@@ -74,6 +76,24 @@ final class HYROVISharedTabsPanel: UIViewController,
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(!showsNavigationBar, animated: false)
         applyTheme()
+        startAutoRefresh()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        autoRefreshTask?.cancel()
+        autoRefreshTask = nil
+    }
+
+    private func startAutoRefresh() {
+        guard autoRefreshTask == nil else { return }
+        autoRefreshTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                guard !Task.isCancelled, let self, self.signedIn, !self.loading else { continue }
+                await self.refresh()
+            }
+        }
     }
 
     @objc private func dismissHub() {
@@ -85,8 +105,11 @@ final class HYROVISharedTabsPanel: UIViewController,
         tableView.delegate = self
         tableView.dataSource = self
         tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 58
+        tableView.estimatedRowHeight = 76
+        tableView.separatorStyle = .none
+        tableView.sectionHeaderTopPadding = 14
         tableView.accessibilityIdentifier = "hyrovi.sharedTabs"
+        tableView.tableHeaderView = makeSharedTabsHeader()
 
         let refresh = UIRefreshControl()
         refresh.addTarget(self, action: #selector(refreshPulled), for: .valueChanged)
@@ -99,6 +122,42 @@ final class HYROVISharedTabsPanel: UIViewController,
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
+
+    private func makeSharedTabsHeader() -> UIView {
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 92))
+        let logo = UIImageView(image: UIImage(named: "hyroviBrandLogo"))
+        logo.translatesAutoresizingMaskIntoConstraints = false
+        logo.contentMode = .scaleAspectFit
+
+        let title = UILabel()
+        title.translatesAutoresizingMaskIntoConstraints = false
+        title.text = "Shared Tabs"
+        title.font = .systemFont(ofSize: 24, weight: .bold)
+
+        let subtitle = UILabel()
+        subtitle.translatesAutoresizingMaskIntoConstraints = false
+        subtitle.text = "Live weiterarbeiten · Geräte synchronisieren"
+        subtitle.font = .systemFont(ofSize: 13, weight: .medium)
+        subtitle.textColor = .secondaryLabel
+
+        let labels = UIStackView(arrangedSubviews: [title, subtitle])
+        labels.translatesAutoresizingMaskIntoConstraints = false
+        labels.axis = .vertical
+        labels.spacing = 3
+
+        container.addSubview(logo)
+        container.addSubview(labels)
+        NSLayoutConstraint.activate([
+            logo.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
+            logo.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            logo.widthAnchor.constraint(equalToConstant: 44),
+            logo.heightAnchor.constraint(equalToConstant: 44),
+            labels.leadingAnchor.constraint(equalTo: logo.trailingAnchor, constant: 12),
+            labels.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -18),
+            labels.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        return container
     }
 
     @objc private func refreshPulled() {
@@ -255,6 +314,9 @@ final class HYROVISharedTabsPanel: UIViewController,
         cell.imageView?.image = nil
         cell.textLabel?.textColor = nil
         cell.detailTextLabel?.textColor = .secondaryLabel
+        cell.backgroundColor = .secondarySystemGroupedBackground
+        cell.layer.cornerRadius = 14
+        cell.layer.masksToBounds = true
 
         guard signedIn else {
             if indexPath.row == 0 {
@@ -312,16 +374,17 @@ final class HYROVISharedTabsPanel: UIViewController,
 
             let stream = liveStreams[indexPath.row]
             cell.textLabel?.text = stream.title.isEmpty ? stream.host : stream.title
-            cell.detailTextLabel?.text = deviceName(stream.deviceId) + " · " + stream.host
-            cell.imageView?.image = UIImage(systemName: "rectangle.stack.badge.play")
+            cell.detailTextLabel?.text = "LIVE · " + deviceName(stream.deviceId) + " · " + stream.host
+            cell.imageView?.image = UIImage(systemName: "dot.radiowaves.left.and.right")
+            cell.imageView?.tintColor = .systemGreen
             cell.accessoryType = .disclosureIndicator
 
         default:
             let deviceId = deviceIDs[indexPath.section - 2]
             let tab = syncedTabs(forDevice: deviceId)[indexPath.row]
             cell.textLabel?.text = tab.host
-            cell.detailTextLabel?.text = tab.url
-            cell.imageView?.image = UIImage(systemName: "globe")
+            cell.detailTextLabel?.text = "Von " + deviceName(deviceId) + " · " + tab.url
+            cell.imageView?.image = UIImage(systemName: "laptopcomputer.and.iphone")
             cell.accessoryType = .disclosureIndicator
         }
 
@@ -346,7 +409,9 @@ final class HYROVISharedTabsPanel: UIViewController,
                 }
             } else if indexPath.row == 2,
                       let url = URL(string: "https://one.hyrovi.com/") {
-                UIApplication.shared.open(url)
+                let browser = SFSafariViewController(url: url)
+                browser.dismissButtonStyle = .close
+                present(browser, animated: true)
             }
 
         case 1:

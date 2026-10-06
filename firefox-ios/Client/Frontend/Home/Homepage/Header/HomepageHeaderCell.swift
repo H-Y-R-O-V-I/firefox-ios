@@ -13,14 +13,14 @@ import TipKit
 // Contains the firefox logo, and optionally the Quick Answers button
 class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, FeatureFlaggable {
     enum UX {
-        static let firefoxLogoImageSize = CGSize(width: 40, height: 40)
+        static let brandLogoImageSize = CGSize(width: 42, height: 42)
         static let privateNovaLogoImageSize = CGSize(width: 72, height: 72)
-        static let firefoxTextImageSize = CGSize(width: 90, height: 40)
         static let interImageSpacing: CGFloat = 10
         static let quickAnswersButtonSize: CGFloat = 44
+        static let oneButtonWidth: CGFloat = 68
 
         static func contentWidth() -> CGFloat {
-            return UX.firefoxLogoImageSize.width + UX.interImageSpacing + UX.firefoxTextImageSize.width
+            return 188
         }
     }
 
@@ -48,10 +48,41 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         imageView.contentMode = .scaleAspectFit
     }
 
-    private lazy var logoTextImage: UIImageView = .build { imageView in
-        imageView.image = UIImage(imageLiteralResourceName: ImageIdentifiers.homeHeaderLogoText)
-            .withRenderingMode(.alwaysTemplate)
-        imageView.contentMode = .scaleAspectFit
+    private lazy var brandTextStack: UIStackView = .build { view in
+        view.axis = .vertical
+        view.spacing = 1
+        view.alignment = .leading
+    }
+
+    private lazy var brandTitleLabel: UILabel = .build { label in
+        label.text = "HYROVI Browser"
+        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.adjustsFontForContentSizeCategory = true
+    }
+
+    private lazy var brandSubtitleLabel: UILabel = .build { label in
+        label.text = "Browser · One · Shared Tabs"
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.adjustsFontForContentSizeCategory = true
+    }
+
+    private lazy var oneButton: UIButton = .build { [weak self] button in
+        var configuration = UIButton.Configuration.tinted()
+        configuration.title = "One"
+        configuration.image = UIImage(named: "hyroviBrandLogo")
+        configuration.imagePadding = 5
+        configuration.cornerStyle = .capsule
+        button.configuration = configuration
+        button.accessibilityLabel = "HYROVI One"
+        button.addAction(UIAction(handler: { _ in
+            self?.openHYROVIOne()
+        }), for: .touchUpInside)
+    }
+
+    private lazy var actionsStackView: UIStackView = .build { view in
+        view.axis = .horizontal
+        view.spacing = 8
+        view.alignment = .center
     }
 
     private lazy var quickAnswersButton: UIButton = .build { [weak self] button in
@@ -69,10 +100,10 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
     private lazy var logoCenterConstraint = logoContainerView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor)
     private lazy var logoLeadingConstraint = logoContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor)
     private lazy var logoImageWidthConstraint = logoImage.widthAnchor.constraint(
-        equalToConstant: UX.firefoxLogoImageSize.width
+        equalToConstant: UX.brandLogoImageSize.width
     )
     private lazy var logoImageHeightConstraint = logoImage.heightAnchor.constraint(
-        equalToConstant: UX.firefoxLogoImageSize.height
+        equalToConstant: UX.brandLogoImageSize.height
     )
 
     // MARK: - Initializers
@@ -90,12 +121,17 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
     private func setupLayout() {
         contentView.backgroundColor = .clear
 
+        brandTextStack.addArrangedSubview(brandTitleLabel)
+        brandTextStack.addArrangedSubview(brandSubtitleLabel)
         logoStackView.addArrangedSubview(logoImage)
-        logoStackView.addArrangedSubview(logoTextImage)
+        logoStackView.addArrangedSubview(brandTextStack)
         logoContainerView.addSubview(logoStackView)
 
+        actionsStackView.addArrangedSubview(oneButton)
+        actionsStackView.addArrangedSubview(quickAnswersButton)
+
         contentView.addSubview(logoContainerView)
-        contentView.addSubview(quickAnswersButton)
+        contentView.addSubview(actionsStackView)
 
         logoStackView.pinToSuperview()
 
@@ -106,19 +142,18 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         NSLayoutConstraint.activate([
             logoImageWidthConstraint,
             logoImageHeightConstraint,
-            logoTextImage.widthAnchor.constraint(equalToConstant: UX.firefoxTextImageSize.width),
-            logoTextImage.heightAnchor.constraint(equalToConstant: UX.firefoxTextImageSize.height),
 
             logoContainerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             logoContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            logoContainerView.trailingAnchor.constraint(lessThanOrEqualTo: quickAnswersButton.leadingAnchor),
+            logoContainerView.trailingAnchor.constraint(lessThanOrEqualTo: actionsStackView.leadingAnchor, constant: -12),
 
+            oneButton.widthAnchor.constraint(equalToConstant: UX.oneButtonWidth),
             quickAnswersButton.widthAnchor.constraint(equalToConstant: UX.quickAnswersButtonSize),
             quickAnswersButton.heightAnchor.constraint(equalToConstant: UX.quickAnswersButtonSize),
-            quickAnswersButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            quickAnswersButton.centerYAnchor.constraint(equalTo: logoContainerView.centerYAnchor),
-            quickAnswersButton.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor),
-            quickAnswersButton.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor)
+            actionsStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            actionsStackView.centerYAnchor.constraint(equalTo: logoContainerView.centerYAnchor),
+            actionsStackView.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor),
+            actionsStackView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor)
         ])
     }
 
@@ -133,19 +168,20 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
 
         let isNovaPrivate = featureFlagsProvider.isEnabled(.novaDesign) && headerState.isPrivate
 
-        let logoSize = isNovaPrivate ? UX.privateNovaLogoImageSize : UX.firefoxLogoImageSize
+        let logoSize = isNovaPrivate ? UX.privateNovaLogoImageSize : UX.brandLogoImageSize
         logoImageWidthConstraint.constant = logoSize.width
         logoImageHeightConstraint.constant = logoSize.height
-        logoTextImage.isHidden = isNovaPrivate
+        brandTextStack.isHidden = isNovaPrivate
+        oneButton.isHidden = isNovaPrivate
 
         logoImage.image = isNovaPrivate
             ? UIImage(named: StandardImageIdentifiers.ExtraExtraExtraLarge.privateModeCircleFillMulticolor)
-            : UIImage(imageLiteralResourceName: ImageIdentifiers.homeHeaderLogoBall)
+            : UIImage(named: "hyroviBrandLogo")
 
         quickAnswersButton.isHidden = !headerState.showQuickAnswersButton
 
         // if the quick answers button is visible and we are on iPhone setup, align the logo to the leading
-        let alignLogoToLeading = headerState.showQuickAnswersButton && !showiPadSetup
+        let alignLogoToLeading = !showiPadSetup || !oneButton.isHidden
         logoCenterConstraint.isActive = !alignLogoToLeading
         logoLeadingConstraint.isActive = alignLogoToLeading
 
@@ -205,6 +241,18 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         tipObservationTask = nil
     }
 
+    private func openHYROVIOne() {
+        guard let headerState else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        store.dispatch(
+            NavigationBrowserAction(
+                navigationDestination: NavigationDestination(.hyroviOne),
+                windowUUID: headerState.windowUUID,
+                actionType: NavigationBrowserActionType.tapOnHYROVIOne
+            )
+        )
+    }
+
     private func quickAnswerButtonTapped() {
         guard let headerState else { return }
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -225,8 +273,10 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
 
     // MARK: - ThemeApplicable
     func applyTheme(theme: Theme) {
-        logoTextImage.tintColor = logoTextColor ?? theme.colors.textPrimary
-
+        brandTitleLabel.textColor = logoTextColor ?? theme.colors.textPrimary
+        brandSubtitleLabel.textColor = theme.colors.textSecondary
+        oneButton.configuration?.baseBackgroundColor = theme.colors.layer4
+        oneButton.configuration?.baseForegroundColor = theme.colors.actionPrimary
         quickAnswersButton.configuration?.baseBackgroundColor = theme.colors.layer4
         quickAnswersButton.configuration?.baseForegroundColor = theme.colors.actionPrimary
     }

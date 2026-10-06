@@ -20,7 +20,8 @@ class ResetSearchEnginePrefsSetting: HiddenSetting {
 
         // Provide courtesy message
         let alert = UIAlertController(title: "Search Preferences Reset",
-                                      message: "Please quit & relaunch Firefox for changes to take effect.",
+                                      message: "Bitte HYROVI Browser beenden und neu öffnen, "
+                                          + "damit die Änderungen wirksam werden.",
                                       preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         settings.present(alert, animated: true)

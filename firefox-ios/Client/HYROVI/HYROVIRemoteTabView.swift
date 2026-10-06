@@ -57,6 +57,13 @@ final class RemoteTabController: NSObject, ObservableObject, WKScriptMessageHand
         }
     }
 
+    func forceRefresh() {
+        Task { [weak self] in
+            guard let self else { return }
+            await self.poll(initial: true)
+        }
+    }
+
     func stop() {
         pollingTask?.cancel()
         pollingTask = nil
@@ -126,7 +133,7 @@ final class RemoteTabController: NSObject, ObservableObject, WKScriptMessageHand
     (() => {
       if (window.__hyroviViewerInstalled) return;
       window.__hyroviViewerInstalled = true;
-      let scrollTimer = null;
+      let scrollState = { timer: null };
       const bridge = window.webkit.messageHandlers.hyrovi;
 
       const nodeFor = target =>
@@ -158,9 +165,9 @@ final class RemoteTabController: NSObject, ObservableObject, WKScriptMessageHand
       }, true);
 
       window.addEventListener('scroll', () => {
-        if (scrollTimer) return;
-        scrollTimer = setTimeout(() => {
-          scrollTimer = null;
+        if (scrollState.timer) return;
+        scrollState.timer = setTimeout(() => {
+          scrollState.timer = null;
           bridge.postMessage({type:'scroll', x:window.scrollX, y:window.scrollY});
         }, 160);
       }, {passive:true});
@@ -211,20 +218,12 @@ struct RemoteTabView: View {
     var body: some View {
         ZStack(alignment: .top) {
             RemoteWKWebView(controller: controller)
+                .padding(.top, 38)
 
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(controller.connected ? Color.green : Color.orange)
-                    .frame(width: 7, height: 7)
-                Text(controller.connected ? "Live vom Host" : "Verbindung …")
-                Spacer()
-                Text("DOM")
-                    .fontWeight(.semibold)
+            VStack(spacing: 0) {
+                statusBar
+                errorBanner
             }
-            .font(.caption2)
-            .padding(.horizontal, 10)
-            .frame(height: 28)
-            .background(.ultraThinMaterial)
         }
         .navigationTitle(controller.stream.title.isEmpty ? controller.stream.host : controller.stream.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -236,6 +235,55 @@ struct RemoteTabView: View {
             } else {
                 controller.stop()
             }
+        }
+    }
+
+    private var statusBar: some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(controller.connected ? Color.green : Color.orange)
+                .frame(width: 8, height: 8)
+            Text(controller.connected ? "Live verbunden" : "Verbinde ...")
+                .fontWeight(.semibold)
+            Text("-")
+            Text(controller.stream.host)
+                .lineLimit(1)
+            Spacer()
+            refreshButton
+        }
+        .font(.caption)
+        .padding(.horizontal, 12)
+        .frame(height: 38)
+        .background(.ultraThinMaterial)
+    }
+
+    private var refreshButton: some View {
+        Button {
+            controller.forceRefresh()
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .accessibilityHidden(true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Neu laden")
+    }
+
+    @ViewBuilder
+    private var errorBanner: some View {
+        if let errorMessage = controller.errorMessage {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .accessibilityHidden(true)
+                Text(errorMessage)
+                    .lineLimit(2)
+                Spacer()
+                Button("Neu verbinden") {
+                    controller.forceRefresh()
+                }
+            }
+            .font(.caption)
+            .padding(10)
+            .background(.thinMaterial)
         }
     }
 }

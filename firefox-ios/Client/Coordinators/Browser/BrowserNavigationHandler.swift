@@ -129,6 +129,9 @@ protocol BrowserNavigationHandler: AnyObject, QRCodeNavigationHandler {
     func showShortcutsLibrary()
 
     @MainActor
+    func showHYROVIOne()
+
+    @MainActor
     func showGoogleLensPhotoPicker()
 
     @MainActor

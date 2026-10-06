@@ -193,6 +193,7 @@ struct BrowserViewControllerState: ScreenState {
             NavigationBrowserActionType.tapOnHomepageSearchBar,
             NavigationBrowserActionType.tapOnShortcutsShowAllButton,
             NavigationBrowserActionType.tapOnQuickAnswersButton,
+            NavigationBrowserActionType.tapOnHYROVIOne,
             NavigationBrowserActionType.tapOnPrivacyNoticeLink,
             NavigationBrowserActionType.tapOnShowCertificatesFromErrorPage,
             NavigationBrowserActionType.tapOnNativeErrorPageLearnMore,

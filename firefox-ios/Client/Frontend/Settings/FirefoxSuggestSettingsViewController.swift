@@ -6,14 +6,14 @@ import Common
 import Foundation
 import UIKit
 
-/// A view controller that manages the hidden Firefox Suggest debug settings.
+/// A view controller that manages the hidden HYROVI Vorschläge debug settings.
 class FirefoxSuggestSettingsViewController: SettingsTableViewController,
                                             FeatureFlaggable,
                                             UserFeaturePreferenceProvider {
     init(profile: Profile?, windowUUID: WindowUUID) {
         super.init(style: .grouped, windowUUID: windowUUID)
         self.profile = profile
-        self.title = "Firefox Suggest"
+        self.title = "HYROVI Vorschläge"
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -25,7 +25,7 @@ class FirefoxSuggestSettingsViewController: SettingsTableViewController,
         let enabled = BoolSetting(
             with: .firefoxSuggestFeature,
             titleText: NSAttributedString(
-                string: "Enable Firefox Suggest",
+                string: "HYROVI Vorschläge aktivieren",
                 attributes: [NSAttributedString.Key.foregroundColor: theme.colors.textPrimary])
         ) { [weak self] _ in
             guard let self else { return }
@@ -47,7 +47,7 @@ class FirefoxSuggestSettingsViewController: SettingsTableViewController,
     }
 }
 
-/// A Firefox Suggest debug setting that downloads and stores new suggestions
+/// A HYROVI Vorschläge debug setting that downloads and stores new suggestions
 /// immediately, without waiting for the background ingestion task to run.
 class ForceFirefoxSuggestIngestSetting: Setting {
     let profile: Profile?
