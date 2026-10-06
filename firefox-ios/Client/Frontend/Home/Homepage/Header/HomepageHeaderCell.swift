@@ -10,17 +10,17 @@ import QuickAnswersKit
 import TipKit
 
 // Header for the homepage in both normal and private mode
-// Contains the firefox logo, and optionally the Quick Answers button
+// Contains HYROVI Browser branding, and optionally the Quick Answers button
 class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, FeatureFlaggable {
     enum UX {
-        static let brandLogoImageSize = CGSize(width: 42, height: 42)
+        static let brandLogoImageSize = CGSize(width: 40, height: 40)
         static let privateNovaLogoImageSize = CGSize(width: 72, height: 72)
+        static let brandTextSize = CGSize(width: 126, height: 40)
         static let interImageSpacing: CGFloat = 10
         static let quickAnswersButtonSize: CGFloat = 44
-        static let oneButtonWidth: CGFloat = 68
 
         static func contentWidth() -> CGFloat {
-            return 188
+            return UX.brandLogoImageSize.width + UX.interImageSpacing + UX.brandTextSize.width
         }
     }
 
@@ -48,41 +48,13 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         imageView.contentMode = .scaleAspectFit
     }
 
-    private lazy var brandTextStack: UIStackView = .build { view in
-        view.axis = .vertical
-        view.spacing = 1
-        view.alignment = .leading
-    }
-
-    private lazy var brandTitleLabel: UILabel = .build { label in
+    private lazy var brandTextLabel: UILabel = .build { label in
         label.text = "HYROVI Browser"
         label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.textAlignment = .left
         label.adjustsFontForContentSizeCategory = true
-    }
-
-    private lazy var brandSubtitleLabel: UILabel = .build { label in
-        label.text = "Browser · One · Shared Tabs"
-        label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.adjustsFontForContentSizeCategory = true
-    }
-
-    private lazy var oneButton: UIButton = .build { [weak self] button in
-        var configuration = UIButton.Configuration.tinted()
-        configuration.title = "One"
-        configuration.image = UIImage(named: "hyroviBrandLogo")
-        configuration.imagePadding = 5
-        configuration.cornerStyle = .capsule
-        button.configuration = configuration
-        button.accessibilityLabel = "HYROVI One"
-        button.addAction(UIAction(handler: { _ in
-            self?.openHYROVIOne()
-        }), for: .touchUpInside)
-    }
-
-    private lazy var actionsStackView: UIStackView = .build { view in
-        view.axis = .horizontal
-        view.spacing = 8
-        view.alignment = .center
+        label.minimumScaleFactor = 0.78
+        label.adjustsFontSizeToFitWidth = true
     }
 
     private lazy var quickAnswersButton: UIButton = .build { [weak self] button in
@@ -121,17 +93,12 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
     private func setupLayout() {
         contentView.backgroundColor = .clear
 
-        brandTextStack.addArrangedSubview(brandTitleLabel)
-        brandTextStack.addArrangedSubview(brandSubtitleLabel)
         logoStackView.addArrangedSubview(logoImage)
-        logoStackView.addArrangedSubview(brandTextStack)
+        logoStackView.addArrangedSubview(brandTextLabel)
         logoContainerView.addSubview(logoStackView)
 
-        actionsStackView.addArrangedSubview(oneButton)
-        actionsStackView.addArrangedSubview(quickAnswersButton)
-
         contentView.addSubview(logoContainerView)
-        contentView.addSubview(actionsStackView)
+        contentView.addSubview(quickAnswersButton)
 
         logoStackView.pinToSuperview()
 
@@ -142,18 +109,19 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         NSLayoutConstraint.activate([
             logoImageWidthConstraint,
             logoImageHeightConstraint,
+            brandTextLabel.widthAnchor.constraint(equalToConstant: UX.brandTextSize.width),
+            brandTextLabel.heightAnchor.constraint(equalToConstant: UX.brandTextSize.height),
 
             logoContainerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             logoContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            logoContainerView.trailingAnchor.constraint(lessThanOrEqualTo: actionsStackView.leadingAnchor, constant: -12),
+            logoContainerView.trailingAnchor.constraint(lessThanOrEqualTo: quickAnswersButton.leadingAnchor),
 
-            oneButton.widthAnchor.constraint(equalToConstant: UX.oneButtonWidth),
             quickAnswersButton.widthAnchor.constraint(equalToConstant: UX.quickAnswersButtonSize),
             quickAnswersButton.heightAnchor.constraint(equalToConstant: UX.quickAnswersButtonSize),
-            actionsStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            actionsStackView.centerYAnchor.constraint(equalTo: logoContainerView.centerYAnchor),
-            actionsStackView.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor),
-            actionsStackView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor)
+            quickAnswersButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            quickAnswersButton.centerYAnchor.constraint(equalTo: logoContainerView.centerYAnchor),
+            quickAnswersButton.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor),
+            quickAnswersButton.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor)
         ])
     }
 
@@ -171,8 +139,7 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         let logoSize = isNovaPrivate ? UX.privateNovaLogoImageSize : UX.brandLogoImageSize
         logoImageWidthConstraint.constant = logoSize.width
         logoImageHeightConstraint.constant = logoSize.height
-        brandTextStack.isHidden = isNovaPrivate
-        oneButton.isHidden = isNovaPrivate
+        brandTextLabel.isHidden = isNovaPrivate
 
         logoImage.image = isNovaPrivate
             ? UIImage(named: StandardImageIdentifiers.ExtraExtraExtraLarge.privateModeCircleFillMulticolor)
@@ -181,7 +148,7 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         quickAnswersButton.isHidden = !headerState.showQuickAnswersButton
 
         // if the quick answers button is visible and we are on iPhone setup, align the logo to the leading
-        let alignLogoToLeading = !showiPadSetup || !oneButton.isHidden
+        let alignLogoToLeading = headerState.showQuickAnswersButton && !showiPadSetup
         logoCenterConstraint.isActive = !alignLogoToLeading
         logoLeadingConstraint.isActive = alignLogoToLeading
 
@@ -241,18 +208,6 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
         tipObservationTask = nil
     }
 
-    private func openHYROVIOne() {
-        guard let headerState else { return }
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        store.dispatch(
-            NavigationBrowserAction(
-                navigationDestination: NavigationDestination(.hyroviOne),
-                windowUUID: headerState.windowUUID,
-                actionType: NavigationBrowserActionType.tapOnHYROVIOne
-            )
-        )
-    }
-
     private func quickAnswerButtonTapped() {
         guard let headerState else { return }
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -273,10 +228,8 @@ class HomepageHeaderCell: UICollectionViewCell, ReusableCell, ThemeApplicable, F
 
     // MARK: - ThemeApplicable
     func applyTheme(theme: Theme) {
-        brandTitleLabel.textColor = logoTextColor ?? theme.colors.textPrimary
-        brandSubtitleLabel.textColor = theme.colors.textSecondary
-        oneButton.configuration?.baseBackgroundColor = theme.colors.layer4
-        oneButton.configuration?.baseForegroundColor = theme.colors.actionPrimary
+        brandTextLabel.textColor = logoTextColor ?? theme.colors.textPrimary
+
         quickAnswersButton.configuration?.baseBackgroundColor = theme.colors.layer4
         quickAnswersButton.configuration?.baseForegroundColor = theme.colors.actionPrimary
     }

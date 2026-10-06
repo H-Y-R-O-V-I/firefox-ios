@@ -30,7 +30,7 @@ class SearchBarCell: UICollectionViewCell, ReusableCell, ThemeApplicable {
     }
 
     private lazy var placeholderLabel: UILabel = .build { view in
-        view.text = "Mit HYROVI Browser suchen oder Adresse eingeben"
+        view.text = "Suchen oder Adresse"
         view.font = FXFontStyles.Regular.body.scaledFont()
         view.textAlignment = .center
         view.numberOfLines = 0
@@ -52,7 +52,7 @@ class SearchBarCell: UICollectionViewCell, ReusableCell, ThemeApplicable {
         isAccessibilityElement = true
         accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.SearchBar.itemCell
         accessibilityTraits.insert(.button)
-        accessibilityLabel = "Mit HYROVI Browser suchen oder Adresse eingeben"
+        accessibilityLabel = "Suchen oder Adresse"
     }
 
     private func setupView() {
