@@ -19,7 +19,11 @@ struct IntroScreenManager: FeatureFlaggable, IntroScreenManagerProtocol {
     var prefs: Prefs
 
     var shouldShowIntroScreen: Bool {
-        prefs.intForKey(PrefsKeys.IntroSeen) == nil
+        if Bundle.main.bundleIdentifier == "com.hyrovi.browser.ios" {
+            return false
+        }
+
+        return prefs.intForKey(PrefsKeys.IntroSeen) == nil
     }
 
     func didSeeIntroScreen() {
