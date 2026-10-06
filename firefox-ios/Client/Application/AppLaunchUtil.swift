@@ -42,6 +42,18 @@ final class AppLaunchUtil: FeatureFlaggable, Sendable {
 
         SummarizerPrefsMigration(prefs: profile.prefs).migrateSelectedLanguage()
 
+        if Bundle.main.bundleIdentifier == "com.hyrovi.browser.ios" {
+            profile.prefs.setBool(false, forKey: AppConstants.prefSendCrashReports)
+            profile.prefs.setBool(false, forKey: AppConstants.prefSendUsageData)
+            profile.prefs.setBool(false, forKey: AppConstants.prefSendDailyUsagePing)
+            profile.prefs.setBool(false, forKey: AppConstants.prefStudiesToggle)
+            profile.prefs.setBool(false, forKey: AppConstants.prefRolloutsToggle)
+            profile.prefs.setBool(false, forKey: PrefsKeys.FeatureFlags.SponsoredShortcuts)
+            profile.prefs.setBool(false, forKey: PrefsKeys.SearchSettings.showFirefoxSponsoredSuggestions)
+            profile.prefs.setBool(false, forKey: PrefsKeys.SearchSettings.showFirefoxNonSponsoredSuggestions)
+            profile.prefs.setBool(false, forKey: PrefsKeys.UserFeatureFlagPrefs.ASPocketStories)
+        }
+
         if #available(iOS 26, *) {
             AppleIntelligenceUtil().processAvailabilityState()
         }
@@ -186,6 +198,12 @@ final class AppLaunchUtil: FeatureFlaggable, Sendable {
 
     private func initializeExperiments() {
         Experiments.initialize()
+
+        if Bundle.main.bundleIdentifier == "com.hyrovi.browser.ios" {
+            Experiments.setStudiesSetting(false)
+            Experiments.setTelemetrySetting(false)
+            Experiments.setRolloutsSetting(false)
+        }
     }
 
     private func updateSessionCount() {

@@ -216,6 +216,20 @@ class AppSettingsTableViewController: SettingsTableViewController,
     private func setupDataSettings() {
         guard let profile else { return }
 
+        if Bundle.main.bundleIdentifier == "com.hyrovi.browser.ios" {
+            profile.prefs.setBool(false, forKey: AppConstants.prefSendCrashReports)
+            profile.prefs.setBool(false, forKey: AppConstants.prefSendUsageData)
+            profile.prefs.setBool(false, forKey: AppConstants.prefSendDailyUsagePing)
+            profile.prefs.setBool(false, forKey: AppConstants.prefStudiesToggle)
+            profile.prefs.setBool(false, forKey: AppConstants.prefRolloutsToggle)
+            DefaultGleanWrapper().setUpload(isEnabled: false)
+            gleanUsageReportingMetricsService.stop()
+            Experiments.setStudiesSetting(false)
+            Experiments.setTelemetrySetting(false)
+            Experiments.setRolloutsSetting(false)
+            return
+        }
+
         let studiesSetting = SendDataSetting(
             prefs: profile.prefs,
             prefKey: AppConstants.prefStudiesToggle,
@@ -329,7 +343,7 @@ class AppSettingsTableViewController: SettingsTableViewController,
         settings += getAccountSetting()
         settings += getGeneralSettings()
         settings += getPrivacySettings()
-        settings += getSupportSettings()
+        settings += getHYROVISettings()
         settings += getAboutSettings()
 
         if showDebugSettings {
@@ -341,31 +355,24 @@ class AppSettingsTableViewController: SettingsTableViewController,
 
     private func getDefaultBrowserSetting() -> [SettingSection] {
         let footerTitle = NSAttributedString(
-            string: String.FirefoxHomepage.HomeTabBanner.EvergreenMessage.HomeTabBannerDescription)
+            string: "HYROVI Browser verbindet Browsing, Geräte und Shared Tabs mit HYROVI One.")
 
         return [SettingSection(footerTitle: footerTitle,
                                children: [DefaultBrowserSetting(theme: themeManager.getCurrentTheme(for: windowUUID))])]
     }
 
     private func getAccountSetting() -> [SettingSection] {
-        let accountSectionTitle = NSAttributedString(string: .FxAFirefoxAccount)
+        let title = NSAttributedString(string: "HYROVI One")
+        let footer = NSAttributedString(
+            string: "Ein Account für Geräte, Browser-Sync und Live Shared Tabs."
+        )
 
-        let attributedString = NSAttributedString(string: .Settings.Sync.ButtonDescription)
-        let accountFooterText = !(profile?.hasAccount() ?? false) ? attributedString : nil
-
-        var settings = [
-            // Without a Firefox Account:
-            ConnectSetting(settings: self, settingsDelegate: parentCoordinator),
-            AdvancedAccountSetting(settings: self, isHidden: showDebugSettings, settingsDelegate: parentCoordinator),
-            // With a Firefox Account:
-            AccountStatusSetting(settings: self, settingsDelegate: parentCoordinator),
-            SyncNowSetting(settings: self, settingsDelegate: parentCoordinator)
-        ]
-        if AppInfo.isChinaEdition, let profile {
-            settings.append(ChinaSyncServiceSetting(profile: profile, settingsDelegate: self))
-        }
         return [
-            SettingSection(title: accountSectionTitle, footerTitle: accountFooterText, children: settings)
+            SettingSection(
+                title: title,
+                footerTitle: footer,
+                children: [HYROVIOneSetting(windowUUID: windowUUID)]
+            )
         ]
     }
 
@@ -386,16 +393,6 @@ class AppSettingsTableViewController: SettingsTableViewController,
         if let profile, UIDevice.current.userInterfaceIdiom != .pad {
             generalSettings.append(
                 SearchBarSetting(settings: self, profile: profile, settingsDelegate: parentCoordinator)
-            )
-        }
-
-        // For users whose devices support alternate app icons, add the App Icon setting
-        if UIApplication.shared.supportsAlternateIcons {
-            generalSettings.append(
-                AppIconSetting(
-                    theme: themeManager.getCurrentTheme(for: windowUUID),
-                    settingsDelegate: parentCoordinator
-                )
             )
         }
 
@@ -456,11 +453,32 @@ class AppSettingsTableViewController: SettingsTableViewController,
                                                         settingsDelegate: parentCoordinator))
         }
 
-        privacySettings.append(PrivacyPolicySetting(theme: themeManager.getCurrentTheme(for: windowUUID),
-                                                    settingsDelegate: parentCoordinator))
+        privacySettings.append(
+            HYROVIPrivacySetting(theme: themeManager.getCurrentTheme(for: windowUUID))
+        )
 
         return [SettingSection(title: NSAttributedString(string: .AppSettingsPrivacyTitle),
                                children: privacySettings)]
+    }
+
+    private func getHYROVISettings() -> [SettingSection] {
+        return [
+            SettingSection(
+                title: NSAttributedString(string: "HYROVI"),
+                children: [
+                    HYROVIWebSetting(
+                        title: "HYROVI One im Web",
+                        subtitle: "Geräte und Ecosystem verwalten",
+                        url: URL(string: "https://one.hyrovi.com/")!
+                    ),
+                    HYROVIWebSetting(
+                        title: "HYROVI",
+                        subtitle: "hyrovi.com",
+                        url: URL(string: "https://hyrovi.com/")!
+                    )
+                ]
+            )
+        ]
     }
 
     private func getSupportSettings() -> [SettingSection] {
@@ -508,15 +526,22 @@ class AppSettingsTableViewController: SettingsTableViewController,
     }
 
     private func getAboutSettings() -> [SettingSection] {
-        let aboutSettings = [
-            AppStoreReviewSetting(settingsDelegate: parentCoordinator),
+        let aboutSettings: [Setting] = [
             VersionSetting(settingsDelegate: self),
             LicenseAndAcknowledgementsSetting(settingsDelegate: parentCoordinator),
-            YourRightsSetting(settingsDelegate: parentCoordinator)
+            HYROVIWebSetting(
+                title: "HYROVI Browser",
+                subtitle: "Teil des HYROVI One Ecosystems",
+                url: URL(string: "https://one.hyrovi.com/")!
+            )
         ]
 
-        return [SettingSection(title: NSAttributedString(string: .AppSettingsAbout),
-                               children: aboutSettings)]
+        return [
+            SettingSection(
+                title: NSAttributedString(string: "Über HYROVI Browser"),
+                children: aboutSettings
+            )
+        ]
     }
 
     private func getDebugSettings() -> [SettingSection] {

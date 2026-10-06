@@ -5,7 +5,7 @@
 import UIKit
 
 public enum AppName: String, CustomStringConvertible {
-    case shortName = "Firefox"
+    case shortName = "HYROVI Browser"
 
     public var description: String {
         return self.rawValue

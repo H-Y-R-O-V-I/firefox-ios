@@ -17,6 +17,7 @@ final class HYROVISharedTabsPanel: UIViewController,
     }
 
     private let windowUUID: WindowUUID
+    private let showsNavigationBar: Bool
     private let one = OneClient()
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
 
@@ -31,9 +32,11 @@ final class HYROVISharedTabsPanel: UIViewController,
     var notificationCenter: NotificationProtocol
 
     init(windowUUID: WindowUUID,
+         showsNavigationBar: Bool = false,
          themeManager: ThemeManager = AppContainer.shared.resolve(),
          notificationCenter: NotificationProtocol = NotificationCenter.default) {
         self.windowUUID = windowUUID
+        self.showsNavigationBar = showsNavigationBar
         self.themeManager = themeManager
         self.notificationCenter = notificationCenter
         super.init(nibName: nil, bundle: nil)
@@ -50,6 +53,15 @@ final class HYROVISharedTabsPanel: UIViewController,
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        if showsNavigationBar {
+            title = "HYROVI One"
+            navigationItem.largeTitleDisplayMode = .never
+            navigationItem.rightBarButtonItem = UIBarButtonItem(
+                barButtonSystemItem: .done,
+                target: self,
+                action: #selector(dismissHub)
+            )
+        }
         listenForThemeChanges(withNotificationCenter: notificationCenter)
         applyTheme()
 
@@ -60,8 +72,12 @@ final class HYROVISharedTabsPanel: UIViewController,
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: false)
+        navigationController?.setNavigationBarHidden(!showsNavigationBar, animated: false)
         applyTheme()
+    }
+
+    @objc private func dismissHub() {
+        dismiss(animated: true)
     }
 
     private func setupUI() {

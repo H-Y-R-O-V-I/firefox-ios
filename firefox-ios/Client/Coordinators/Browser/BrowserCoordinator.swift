@@ -767,7 +767,19 @@ final class BrowserCoordinator: BaseCoordinator,
     }
 
     func showSignInView(fxaParameters: FxASignInViewParameters?) {
-        guard let fxaParameters else { return }
+        guard let fxaParameters else {
+            let onePanel = HYROVISharedTabsPanel(
+                windowUUID: tabManager.windowUUID,
+                showsNavigationBar: true
+            )
+            let navigationController = UINavigationController(rootViewController: onePanel)
+            navigationController.modalPresentationStyle = .pageSheet
+            navigationController.sheetPresentationController?.detents = [.medium(), .large()]
+            navigationController.sheetPresentationController?.prefersGrabberVisible = true
+            router.present(navigationController, animated: true, completion: nil)
+            return
+        }
+
         browserViewController.presentSignInViewController(fxaParameters.launchParameters,
                                                           flowType: fxaParameters.flowType,
                                                           referringPage: fxaParameters.referringPage)

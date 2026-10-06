@@ -187,14 +187,14 @@ struct MainMenuConfigurationUtility: Equatable, FeatureFlaggable {
             isHomepage: tabInfo.isHomepage,
             options: [
                 MenuElement(
-                    title: tabInfo.accountData.title,
-                    description: tabInfo.accountData.subtitle,
+                    title: "HYROVI One",
+                    description: "Account, Geräte, Sync & Shared Tabs",
                     iconName: Icons.avatarCircle,
-                    iconImage: profileImage,
-                    needsReAuth: tabInfo.accountData.needsReAuth,
+                    iconImage: UIImage(named: "hyroviBrandLogo"),
+                    needsReAuth: false,
                     isEnabled: true,
                     isActive: false,
-                    a11yLabel: "\(tabInfo.accountData.title) \(tabInfo.accountData.subtitle ?? "")",
+                    a11yLabel: "HYROVI One. Account, Geräte, Sync und Shared Tabs",
                     a11yHint: "",
                     a11yId: AccessibilityIdentifiers.MainMenu.signIn,
                     action: {

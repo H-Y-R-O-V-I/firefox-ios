@@ -141,12 +141,8 @@ class MainMenuCoordinator: BaseCoordinator {
             navigationHandler?.showSettings(at: .general)
 
         case .syncSignIn:
-            let fxaParameters = FxASignInViewParameters(
-                launchParameters: FxALaunchParams(entrypoint: .browserMenu, query: [:]),
-                flowType: .emailLoginFlow,
-                referringPage: .appMenu
-            )
-            navigationHandler?.showSignInView(fxaParameters: fxaParameters)
+            // HYROVI replaces the Firefox Account entry point with the native One hub.
+            navigationHandler?.showSignInView(fxaParameters: nil)
 
         case .printSheet:
             navigationHandler?.showPrintSheet()
