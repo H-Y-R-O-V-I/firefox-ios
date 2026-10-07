@@ -7,10 +7,43 @@ import Security
 
 enum KeychainStore {
     private static let service = "com.hyrovi.browser.ios"
-    private static let account = "hyrovi-one-access-token"
+    private static let tokenAccount = "hyrovi-one-access-token"
+    private static let privateSealIdentityPrefix = "hyrovi-private-age-identity:"
 
     static func saveToken(_ token: String) throws {
-        let data = Data(token.utf8)
+        try save(
+            token,
+            account: tokenAccount,
+            accessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        )
+    }
+
+    static func token() -> String? {
+        value(account: tokenAccount)
+    }
+
+    static func deleteToken() {
+        delete(account: tokenAccount)
+    }
+
+    static func savePrivateSealIdentity(_ identity: String, accountUsername: String) throws {
+        try save(
+            identity,
+            account: privateSealIdentityPrefix + accountUsername,
+            accessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        )
+    }
+
+    static func privateSealIdentity(accountUsername: String) -> String? {
+        value(account: privateSealIdentityPrefix + accountUsername)
+    }
+
+    private static func save(
+        _ value: String,
+        account: String,
+        accessible: CFString
+    ) throws {
+        let data = Data(value.utf8)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -21,7 +54,7 @@ enum KeychainStore {
 
         var insert = query
         insert[kSecValueData as String] = data
-        insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        insert[kSecAttrAccessible as String] = accessible
 
         let status = SecItemAdd(insert as CFDictionary, nil)
         guard status == errSecSuccess else {
@@ -29,7 +62,7 @@ enum KeychainStore {
         }
     }
 
-    static func token() -> String? {
+    private static func value(account: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -46,7 +79,7 @@ enum KeychainStore {
         return String(data: data, encoding: .utf8)
     }
 
-    static func deleteToken() {
+    private static func delete(account: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

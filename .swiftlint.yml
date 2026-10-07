@@ -246,6 +246,7 @@ excluded: # paths to ignore during linting. Takes precedence over `included`.
   - "**/.build"
   - firefox-ios/Client/Assets/Search/get_supported_locales.swift
   - firefox-ios/Client/Generated
+  - firefox-ios/HYROVIClient/
   - firefox-ios/fastlane/
   - firefox-ios/Source/ExcludedFolder
   - firefox-ios/Source/ExcludedFile.swift

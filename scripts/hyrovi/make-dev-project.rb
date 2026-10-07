@@ -9,6 +9,10 @@ ROOT = File.expand_path("../..", __dir__)
 SOURCE = File.join(ROOT, "firefox-ios", "Client.xcodeproj")
 DEST = File.join(ROOT, "firefox-ios", "HYROVIClient.xcodeproj")
 MAIN_TARGET = "Client"
+ENGINE_CORE_DIR = File.join(ROOT, "firefox-ios", "Client", "HYROVI", "EngineCore")
+ENGINE_CORE_LIB = File.join(ENGINE_CORE_DIR, "libhyrovi_engine.a")
+ENGINE_CORE_INCLUDE = File.join(ENGINE_CORE_DIR, "include")
+ENGINE_BUILD_SCRIPT = File.join(ROOT, "scripts", "hyrovi", "build-engine-core.sh")
 DISABLED_EXTENSIONS = %w[
   CredentialProvider
   NotificationService
@@ -18,6 +22,25 @@ DISABLED_EXTENSIONS = %w[
   ActionExtension
 ].freeze
 
+unless File.exist?(ENGINE_CORE_LIB) &&
+       File.exist?(File.join(ENGINE_CORE_INCLUDE, "hyrovi_engine.h")) &&
+       File.exist?(File.join(ENGINE_CORE_INCLUDE, "module.modulemap"))
+  abort "HYROVI Engine core build failed" unless system(ENGINE_BUILD_SCRIPT)
+end
+
+def append_build_setting(config, key, value)
+  current = config.build_settings[key]
+  values =
+    case current
+    when Array then current.dup
+    when String then current.split(" ")
+    else []
+    end
+  values.unshift("$(inherited)") unless values.include?("$(inherited)")
+  values << value unless values.include?(value)
+  config.build_settings[key] = values
+end
+
 FileUtils.rm_rf(DEST)
 FileUtils.cp_r(SOURCE, DEST)
 
@@ -25,8 +48,6 @@ project = Xcodeproj::Project.open(DEST)
 client = project.targets.find { |target| target.name == MAIN_TARGET }
 abort "Client target missing" unless client
 
-# Add HYROVI browser integration sources only to the generated development
-# project. The upstream Client.xcodeproj stays easy to rebase against Mozilla.
 hyrovi_sources_root = File.join(ROOT, "firefox-ios", "Client", "HYROVI")
 hyrovi_group = project.main_group.find_subpath("HYROVI Sources", true)
 Dir[File.join(hyrovi_sources_root, "*.swift")].sort.each do |source_path|
@@ -37,15 +58,25 @@ Dir[File.join(hyrovi_sources_root, "*.swift")].sort.each do |source_path|
   client.source_build_phase.add_file_reference(file_ref, true)
 end
 
-# The personal HYROVI development team cannot receive Mozilla's restricted
-# Default Browser / Browser Installation / Push / Autofill capabilities.
+engine_group = hyrovi_group.new_group(
+  "EngineCore",
+  File.join("Client", "HYROVI", "EngineCore")
+)
+engine_lib_ref = engine_group.new_file("libhyrovi_engine.a")
+client.frameworks_build_phase.add_file_reference(engine_lib_ref, true)
+
+include_path = "$(PROJECT_DIR)/Client/HYROVI/EngineCore/include"
+library_path = "$(PROJECT_DIR)/Client/HYROVI/EngineCore"
+client.build_configurations.each do |config|
+  append_build_setting(config, "HEADER_SEARCH_PATHS", include_path)
+  append_build_setting(config, "SWIFT_INCLUDE_PATHS", include_path)
+  append_build_setting(config, "LIBRARY_SEARCH_PATHS", library_path)
+end
+
 target_attributes = project.root_object.attributes["TargetAttributes"] ||= {}
 client_attributes = target_attributes[client.uuid] ||= {}
 client_attributes["SystemCapabilities"] = {}
 
-# Keep Firefox's internal frameworks, but skip optional app extensions for the
-# first HYROVI device build. Production capabilities can be restored later
-# when Apple grants the matching entitlements to the HYROVI team.
 client.dependencies.delete_if do |dependency|
   target = dependency.target
   target && DISABLED_EXTENSIONS.include?(target.name)
@@ -61,10 +92,6 @@ client.copy_files_build_phases.each do |phase|
   end
 end
 
-# Every product that participates in the local Debug build must use the HYROVI
-# development team. Upstream assigns Mozilla team identifiers to internal
-# frameworks as well as the app target, so changing only Client is not enough
-# for a physical-device build.
 project.targets.each do |target|
   target.build_configurations.each do |config|
     next unless config.name == "Debug"
@@ -92,3 +119,4 @@ scheme.save_as(DEST, "HYROVI Browser Dev", true)
 
 puts DEST
 puts "Client dependencies: #{client.dependencies.map { |d| d.target&.name }.compact.join(", ")}"
+puts "HYROVI Engine core: #{ENGINE_CORE_LIB}"

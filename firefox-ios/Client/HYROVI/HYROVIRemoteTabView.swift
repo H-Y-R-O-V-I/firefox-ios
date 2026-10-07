@@ -76,7 +76,7 @@ final class RemoteTabController: NSObject, ObservableObject, WKScriptMessageHand
             if let snapshot = state.snapshot {
                 revision = snapshot.revision
                 let baseURL = URL(string: snapshot.data.url)
-                webView.loadHTMLString(snapshot.data.html, baseURL: baseURL)
+                webView.loadHTMLString(snapshot.data.html ?? "", baseURL: baseURL)
                 if let x = snapshot.data.scrollX, let y = snapshot.data.scrollY {
                     let js = "window.setTimeout(()=>window.scrollTo(\(x),\(y)),60)"
                     try? await webView.evaluateJavaScript(js)

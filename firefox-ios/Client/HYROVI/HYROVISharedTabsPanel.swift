@@ -417,7 +417,7 @@ final class HYROVISharedTabsPanel: UIViewController,
         case 1:
             guard !liveStreams.isEmpty else { return }
             let stream = liveStreams[indexPath.row]
-            let view = RemoteTabView(stream: stream, client: one)
+            let view = HYROVIEngineAwareRemoteTabView(stream: stream, client: one)
             let host = UIHostingController(rootView: view)
             host.title = stream.title.isEmpty ? stream.host : stream.title
             navigationController?.setNavigationBarHidden(false, animated: true)

@@ -3,19 +3,15 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import AuthenticationServices
-import CryptoKit
 import Foundation
-import Security
 import UIKit
 
 @MainActor
 final class OneClient: NSObject, ASWebAuthenticationPresentationContextProviding {
     static let origin = URL(string: "https://one.hyrovi.com")!
 
-    private let clientId = "hyrovi-browser-ios"
-    private let redirectURI = "hyrovi-browser://auth/callback"
-    private let scope = "profile runtime"
     private var webAuthenticationSession: ASWebAuthenticationSession?
+    private var accountUsername: String?
 
     private let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
@@ -30,7 +26,11 @@ final class OneClient: NSObject, ASWebAuthenticationPresentationContextProviding
     }
 
     func restoreSession() async -> OneSession? {
-        guard KeychainStore.token() != nil else { return nil }
+        guard let token = KeychainStore.token() else { return nil }
+        guard HYROVIEngineCore.shared.setAccessToken(token) else {
+            KeychainStore.deleteToken()
+            return nil
+        }
 
         do {
             let session: OneSession = try await authorized(path: "/api/runtime/v1/session")
@@ -38,6 +38,10 @@ final class OneClient: NSObject, ASWebAuthenticationPresentationContextProviding
                 KeychainStore.deleteToken()
                 return nil
             }
+            accountUsername = session.user
+            // Registration is best-effort for session restoration. The private
+            // viewer retries it when a private Shared Session is actually opened.
+            _ = try? await ensurePrivateSealIdentityRegistered()
             return session
         } catch {
             return nil
@@ -45,66 +49,37 @@ final class OneClient: NSObject, ASWebAuthenticationPresentationContextProviding
     }
 
     func signIn() async throws -> OneSession {
-        let verifier = try randomBase64URL(byteCount: 48)
-        let challenge = base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
-        let state = try randomBase64URL(byteCount: 32)
-
-        var components = URLComponents(
-            url: Self.origin.appendingPathComponent("/identity/authorize"),
-            resolvingAgainstBaseURL: false
-        )!
-        components.queryItems = [
-            URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "redirect_uri", value: redirectURI),
-            URLQueryItem(name: "scope", value: scope),
-            URLQueryItem(name: "state", value: state),
-            URLQueryItem(name: "code_challenge", value: challenge),
-            URLQueryItem(name: "code_challenge_method", value: "S256")
-        ]
-
-        guard let authorizeURL = components.url else {
+        let attempt = try HYROVIEngineCore.shared.beginLogin()
+        guard let authorizeURL = URL(string: attempt.authorizeURL) else {
             throw OneClientError.invalidURL
         }
 
         let callback = try await authenticate(url: authorizeURL)
-        guard callback.scheme == "hyrovi-browser",
-              callback.host == "auth",
-              callback.path == "/callback" else {
-            throw OneClientError.invalidCallback
-        }
-
-        let callbackComponents = URLComponents(url: callback, resolvingAgainstBaseURL: false)
-        let values = Dictionary(
-            uniqueKeysWithValues: (callbackComponents?.queryItems ?? []).map { ($0.name, $0.value ?? "") }
-        )
-        guard values["state"] == state,
-              let code = values["code"],
-              code.count >= 43 else {
-            throw OneClientError.invalidCallback
-        }
+        let exchange = try HYROVIEngineCore.shared.completeLogin(callbackURL: callback.absoluteString)
 
         let token: TokenResponse = try await request(
             path: "/api/identity/token",
             method: "POST",
             authorized: false,
             body: [
-                "grant_type": "authorization_code",
-                "code": code,
-                "client_id": clientId,
-                "redirect_uri": redirectURI,
-                "code_verifier": verifier
+                "grant_type": exchange.grantType,
+                "code": exchange.code,
+                "client_id": exchange.clientId,
+                "redirect_uri": exchange.redirectUri,
+                "code_verifier": exchange.codeVerifier
             ]
         )
 
         guard token.tokenType.lowercased() == "bearer",
-              token.accessToken.hasPrefix("hyrovi_identity_") else {
+              token.accessToken.hasPrefix("hyrovi_identity_"),
+              HYROVIEngineCore.shared.setAccessToken(token.accessToken) else {
             throw OneClientError.invalidToken
         }
 
         try KeychainStore.saveToken(token.accessToken)
         guard let session = await restoreSession() else {
             KeychainStore.deleteToken()
+            HYROVIEngineCore.shared.signOut()
             throw OneClientError.invalidToken
         }
         return session
@@ -119,6 +94,8 @@ final class OneClient: NSObject, ASWebAuthenticationPresentationContextProviding
             )
         }
         KeychainStore.deleteToken()
+        accountUsername = nil
+        HYROVIEngineCore.shared.signOut()
     }
 
     func listRemoteTabs() async throws -> [RemoteStream] {
@@ -141,6 +118,59 @@ final class OneClient: NSObject, ASWebAuthenticationPresentationContextProviding
             authorized: true,
             body: ["action": action]
         )
+    }
+
+    func sendPrivateRemoteAction(
+        streamId: String,
+        sealedAction: SealedRelayPayload
+    ) async throws {
+        let data = try JSONEncoder().encode(sealedAction)
+        guard let value = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw OneClientError.invalidResponse
+        }
+        let _: QueuedActionResponse = try await request(
+            path: "/api/runtime/v1/browser/remote-tabs/\(streamId)/actions",
+            method: "POST",
+            authorized: true,
+            body: ["sealedAction": value]
+        )
+    }
+
+    func ensurePrivateSealIdentityRegistered() async throws
+        -> (identity: String, key: HYROVISealKey) {
+        guard let accountUsername, !accountUsername.isEmpty else {
+            throw OneClientError.notAuthenticated
+        }
+
+        let pair: (identity: String, key: HYROVISealKey)
+        if let identity = KeychainStore.privateSealIdentity(accountUsername: accountUsername) {
+            pair = (
+                identity,
+                try HYROVIEngineCore.shared.describeSealIdentity(identity)
+            )
+        } else {
+            let generated = try HYROVIEngineCore.shared.generateSealIdentity()
+            try KeychainStore.savePrivateSealIdentity(
+                generated.identity,
+                accountUsername: accountUsername
+            )
+            pair = (generated.identity, generated.key)
+        }
+
+        let response: BrowserClientKeyRegistrationResponse = try await request(
+            path: "/api/runtime/v1/browser/client-key",
+            method: "PUT",
+            authorized: true,
+            body: [
+                "keyId": pair.key.keyId,
+                "recipient": pair.key.recipient,
+                "displayName": UIDevice.current.name
+            ]
+        )
+        guard response.ok else {
+            throw OneClientError.invalidResponse
+        }
+        return pair
     }
 
     func browserSync() async throws -> BrowserSyncState {
@@ -236,24 +266,6 @@ final class OneClient: NSObject, ASWebAuthenticationPresentationContextProviding
             throw OneClientError.invalidResponse
         }
         return (data, http)
-    }
-
-    private func randomBase64URL(byteCount: Int) throws -> String {
-        var bytes = [UInt8](repeating: 0, count: byteCount)
-        let result = bytes.withUnsafeMutableBytes { buffer in
-            SecRandomCopyBytes(kSecRandomDefault, byteCount, buffer.baseAddress!)
-        }
-        guard result == errSecSuccess else {
-            throw OneClientError.randomUnavailable
-        }
-        return base64URL(Data(bytes))
-    }
-
-    private func base64URL(_ data: Data) -> String {
-        data.base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
     }
 }
 

@@ -21,6 +21,7 @@ struct RemoteStream: Codable, Identifiable, Hashable {
     let tabId: String
     let url: String
     let title: String
+    let privateMode: Bool?
     let revision: Int
     let createdAt: Int64
     let lastSeenAt: Int64
@@ -41,10 +42,20 @@ struct RemoteViewport: Codable {
     let scale: Double?
 }
 
+struct RemoteEngineSurface: Codable {
+    let codec: String
+    let width: Int
+    let height: Int
+    let revision: Int64?
+    let dataBase64: String
+}
+
 struct RemoteSnapshot: Codable {
     let url: String
     let title: String?
-    let html: String
+    let html: String?
+    let engine: String?
+    let surface: RemoteEngineSurface?
     let scrollX: Double?
     let scrollY: Double?
     let viewport: RemoteViewport?
@@ -54,6 +65,57 @@ struct RemoteSnapshot: Codable {
 struct RemoteSnapshotEnvelope: Codable {
     let revision: Int
     let data: RemoteSnapshot
+}
+
+struct SealedRelayPayload: Codable {
+    let version: Int
+    let scheme: String
+    let kind: String
+    let counter: Int64
+    let nonceBase64: String
+    let ciphertextBase64: String
+}
+
+struct HYROVISealKey: Codable, Hashable {
+    let scheme: String
+    let keyId: String
+    let recipient: String
+}
+
+struct HYROVISealIdentityBundle: Codable {
+    let identity: String
+    let key: HYROVISealKey
+}
+
+struct SealedRelayKey: Codable {
+    let version: Int
+    let scheme: String
+    let keyId: String
+    let ciphertextBase64: String
+}
+
+struct RelayKeyGrant: Codable {
+    let keyId: String
+    let sealedKey: SealedRelayKey
+}
+
+struct BrowserClientKey: Codable {
+    let keyId: String
+    let clientId: String
+    let recipient: String
+    let displayName: String?
+    let createdAt: Int64
+    let updatedAt: Int64
+}
+
+struct BrowserClientKeyRegistrationResponse: Codable {
+    let ok: Bool
+    let key: BrowserClientKey?
+}
+
+struct SealedRemoteSnapshotEnvelope: Codable {
+    let revision: Int
+    let data: SealedRelayPayload
 }
 
 struct RemotePatch: Codable {
@@ -76,6 +138,8 @@ struct RemotePatchBatch: Codable {
 struct RemoteStreamState: Codable {
     let stream: RemoteStream
     let snapshot: RemoteSnapshotEnvelope?
+    let sealedSnapshot: SealedRemoteSnapshotEnvelope?
+    let keyGrants: [RelayKeyGrant]?
     let updates: [RemotePatchBatch]
     let latestRevision: Int
 }

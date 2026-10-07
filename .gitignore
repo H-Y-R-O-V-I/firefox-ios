@@ -155,3 +155,6 @@ LicensePlistTemp
 # Generated HYROVI development project
 firefox-ios/HYROVIClient.xcodeproj/
 firefox-ios/HYROVIClient/
+
+# Generated HYROVI Rust engine core
+firefox-ios/Client/HYROVI/EngineCore/
